@@ -1,5 +1,6 @@
 {
   "appId": "com.yourname.chatweb",
   "appName": "chatweb",
-  "webDir": "dist"
+  "webDir": "dist",
+  "bundledWebRuntime": false
 }
