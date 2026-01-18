@@ -1,67 +1,96 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { motion } from "framer-motion";
 
-export default function UserProfile() {
+function MBtn({ className="", children, ...props }) {
+  return (
+    <motion.button whileHover={{scale:1.02}} whileTap={{scale:0.95}} transition={{duration:0.12}} className={className} {...props}>
+      {children}
+    </motion.button>
+  );
+}
+
+export default function UserProfile(){
   const { id } = useParams();
+  const uid = String(id);
   const nav = useNavigate();
+
   const [me, setMe] = useState(null);
-  const [u, setU] = useState(null);
-  const [busy, setBusy] = useState(true);
+  const [myProfile, setMyProfile] = useState(null);
+  const [p, setP] = useState(null);
   const [status, setStatus] = useState("");
+  const [busy, setBusy] = useState(true);
+
+  const amAdmin = useMemo(() => (myProfile?.username || "") === "xxxxx", [myProfile]);
+  const targetIsAdmin = useMemo(() => (p?.username || "") === "xxxxx", [p]);
 
   useEffect(() => {
     (async () => {
+      setBusy(true); setStatus("");
       const { data: ud } = await supabase.auth.getUser();
       if (!ud.user) { nav("/login", { replace: true }); return; }
       setMe(ud.user);
-      const { data: p, error } = await supabase.from("profiles").select("id,display_name,username,bio,avatar_url").eq("id", id).maybeSingle();
-      if (error) console.error(error);
-      setU(p || null);
+
+      const { data: mp } = await supabase.from("profiles").select("id,display_name,username,avatar_url,public_id").eq("id", ud.user.id).maybeSingle();
+      setMyProfile(mp || null);
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id,display_name,username,avatar_url,bio,public_id")
+        .eq("id", uid)
+        .maybeSingle();
+
+      if (error) { setStatus("Ошибка: " + error.message); setBusy(false); return; }
+      if (!data) { setStatus("Профиль не найден"); setBusy(false); return; }
+      setP(data);
       setBusy(false);
     })();
-  }, [id, nav]);
+  }, [uid, nav]);
 
-  const startChat = async () => {
-    if (!me || !u) return;
+  const startDM = async () => {
+    if (!p?.id) return;
     setStatus("");
     try {
-      // создаем беседу
-      const { data: conv, error: e1 } = await supabase.from("conversations").insert({}).select("id").single();
-      if (e1) throw e1;
-      const cid = conv.id;
-
-      // добавляем себя
-      const { error: e2 } = await supabase.from("conversation_members").insert({ conversation_id: cid, user_id: me.id });
-      if (e2) throw e2;
-
-      // добавляем второго
-      const { error: e3 } = await supabase.from("conversation_members").insert({ conversation_id: cid, user_id: u.id });
-      if (e3) throw e3;
-
-      nav(`/chat/${cid}`);
+      const { data, error } = await supabase.rpc("get_or_create_dm", { other_user: p.id });
+      if (error) throw error;
+      nav(`/chat/${data}`);
     } catch (e) {
       console.error(e);
-      setStatus("Не удалось создать чат: " + (e?.message || String(e)));
+      setStatus("Не удалось открыть чат: " + (e?.message || String(e)));
     }
   };
 
-  if (busy) return <div className="min-h-screen bg-[#0b1014] text-slate-100 grid place-items-center">Загрузка…</div>;
-  if (!u) return <div className="min-h-screen bg-[#0b1014] text-slate-100 grid place-items-center">Пользователь не найден</div>;
+  const banUser = async () => {
+    if (!amAdmin) return;
+    if (!p?.id) return;
+    if (targetIsAdmin) { setStatus("Нельзя банить администратора"); return; }
+    const reason = prompt("Причина бана (необязательно):", "");
+    if (reason === null) return;
+    setStatus("");
+    try {
+      const { error } = await supabase.from("bans").insert({ user_id: p.id, banned_by: me.id, reason: String(reason || "") });
+      if (error) throw error;
+      setStatus("Пользователь забанен ✅");
+    } catch (e) {
+      console.error(e);
+      setStatus("Не удалось забанить: " + (e?.message || String(e)));
+    }
+  };
 
-  const name = u.display_name || "User";
-  const username = u.username ? `@${u.username}` : "@—";
-  const ava = u.avatar_url || "";
-  const letter = (name[0] || "U").toUpperCase();
+  const name = p?.display_name || "User";
+  const ava = p?.avatar_url || "";
+  const letter = (name?.[0] || "U").toUpperCase();
 
   return (
     <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{duration:0.18}} className="min-h-screen bg-[#0b1014] text-slate-100">
       <div className="mx-auto max-w-xl p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="text-lg font-semibold">Профиль</div>
-          <button onClick={() => nav(-1)} className="rounded-xl border border-white/10 px-3 py-1.5 text-sm hover:bg-white/5 active:scale-95 transition">Назад</button>
+          <MBtn onClick={() => nav(-1)} className="rounded-xl border border-white/10 px-3 py-1.5 text-sm hover:bg-white/5">Назад</MBtn>
         </div>
+
+        {status && <div className="mb-3 text-sm text-slate-400">{status}</div>}
 
         <div className="rounded-2xl border border-white/10 bg-[#0e141b] p-4">
           <div className="flex items-center gap-3">
@@ -69,20 +98,19 @@ export default function UserProfile() {
               {ava ? <img src={ava} className="h-full w-full object-cover" /> : letter}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-lg font-semibold truncate">{name}</div>
-              <div className="text-sm text-slate-400 truncate">{username}</div>
+              <div className={"text-lg font-semibold truncate " + (targetIsAdmin ? "rainbow-text" : "")}>{name}</div>
+              <div className="text-sm text-slate-400 truncate">@{p?.username || "—"} • id {p?.public_id ?? "—"}</div>
             </div>
           </div>
 
-          {u.bio && <div className="mt-3 text-slate-200 whitespace-pre-wrap">{u.bio}</div>}
+          {p?.bio && <div className="mt-3 text-sm text-slate-300 whitespace-pre-wrap">{p.bio}</div>}
 
-          {me?.id !== u.id && (
-            <button onClick={startChat} className="mt-4 w-full rounded-2xl bg-[#2ea6ff] text-[#071018] font-semibold py-2 active:scale-95 transition">
-              Написать
-            </button>
-          )}
-
-          {status && <div className="mt-2 text-sm text-slate-400">{status}</div>}
+          <div className="mt-4 flex gap-2">
+            <MBtn onClick={startDM} className="flex-1 rounded-2xl bg-[#2ea6ff] text-[#071018] font-semibold py-2">Написать</MBtn>
+            {amAdmin && !targetIsAdmin && (
+              <MBtn onClick={banUser} className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-2 text-red-200 hover:bg-red-500/20">Бан</MBtn>
+            )}
+          </div>
         </div>
       </div>
     </motion.div>

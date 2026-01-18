@@ -3,3 +3,17 @@
 :root { color-scheme: dark; }
 html, body, #root { height: 100%; }
 body { margin: 0; background: #0b1014; }
+
+/* admin rainbow */
+.rainbow-text{
+  background: linear-gradient(90deg,#ff3b3b,#ffbf3b,#3bff6b,#3bd7ff,#7b3bff,#ff3bd7);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: rainbow 2.5s linear infinite;
+  background-size: 200% 100%;
+}
+@keyframes rainbow{
+  0%{background-position:0% 50%}
+  100%{background-position:200% 50%}
+}

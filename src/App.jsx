@@ -8,6 +8,7 @@ import UserProfile from "./pages/UserProfile";
 import Chats from "./pages/Chats";
 import Chat from "./pages/Chat";
 import GroupInfo from "./pages/GroupInfo";
+import Settings from "./pages/Settings";
 import RequireAuth from "./components/RequireAuth";
 
 export default function App() {
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
         <Route path="/" element={<RequireAuth><Feed /></RequireAuth>} />
         <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
+        <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
         <Route path="/u/:id" element={<RequireAuth><UserProfile /></RequireAuth>} />
         <Route path="/chats" element={<RequireAuth><Chats /></RequireAuth>} />
         <Route path="/chat/:id" element={<RequireAuth><Chat /></RequireAuth>} />
