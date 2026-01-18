@@ -1,93 +1,74 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+
+const KEY = "app_lang";
 
 const dict = {
   ru: {
-    menu: "Меню",
-    feed: "Лента",
-    chats: "Чаты",
-    my_profile: "Мой профиль",
-    settings: "Настройки",
-    logout_in_profile: "Выйти (в профиле)",
-    comments: "Комментарии",
-    write_comment: "Написать комментарий…",
-    reply: "Ответ…",
-    comment: "Комментарий…",
-    send: "Отправить",
-    not_found: "Не найдено",
-  },
-  ua: {
-    menu: "Меню",
-    feed: "Стрічка",
-    chats: "Чати",
-    my_profile: "Мій профіль",
-    settings: "Налаштування",
-    logout_in_profile: "Вийти (у профілі)",
-    comments: "Коментарі",
-    write_comment: "Написати коментар…",
-    reply: "Відповідь…",
-    comment: "Коментар…",
-    send: "Надіслати",
-    not_found: "Не знайдено",
+    menu: "Меню", feed: "Лента", chats: "Чаты", profile: "Профиль", settings: "Настройки", back: "Назад",
+    new_post: "Что нового?", post_btn: "Пост", empty_feed: "Пока пусто.",
+    search_by_username: "Поиск по username", search_hint: "Можно вводить часть — ищет внутри", search_ph: "например: alex", find: "Найти",
+    my_chats: "Мои чаты", results: "Результаты поиска", no_chats: "Пока нет чатов", not_found: "Не найдено",
+    profile_not_found: "Профиль не найден", write: "Написать",
+    comments: "Комментарии", reply: "Ответить", reply_to: "Ответ на:", write_comment: "Написать комментарий…", write_reply: "Ответ…",
+    logout: "Выйти",
+    search_error: "Ошибка поиска:", open_chat_error: "Не удалось открыть чат:",
   },
   en: {
-    menu: "Menu",
-    feed: "Feed",
-    chats: "Chats",
-    my_profile: "My profile",
-    settings: "Settings",
-    logout_in_profile: "Logout (in profile)",
-    comments: "Comments",
-    write_comment: "Write a comment…",
-    reply: "Reply…",
-    comment: "Comment…",
-    send: "Send",
-    not_found: "Not found",
+    menu: "Menu", feed: "Feed", chats: "Chats", profile: "Profile", settings: "Settings", back: "Back",
+    new_post: "What's new?", post_btn: "Post", empty_feed: "Nothing here yet.",
+    search_by_username: "Search by username", search_hint: "You can type a part — it matches inside", search_ph: "e.g.: alex", find: "Find",
+    my_chats: "My chats", results: "Search results", no_chats: "No chats yet", not_found: "Not found",
+    profile_not_found: "Profile not found", write: "Message",
+    comments: "Comments", reply: "Reply", reply_to: "Reply to:", write_comment: "Write a comment…", write_reply: "Reply…",
+    logout: "Log out",
+    search_error: "Search error:", open_chat_error: "Could not open chat:",
+  },
+  uk: {
+    menu: "Меню", feed: "Стрічка", chats: "Чати", profile: "Профіль", settings: "Налаштування", back: "Назад",
+    new_post: "Що нового?", post_btn: "Пост", empty_feed: "Поки порожньо.",
+    search_by_username: "Пошук за username", search_hint: "Можна ввести частину — шукає всередині", search_ph: "наприклад: alex", find: "Знайти",
+    my_chats: "Мої чати", results: "Результати пошуку", no_chats: "Поки немає чатів", not_found: "Не знайдено",
+    profile_not_found: "Профіль не знайдено", write: "Написати",
+    comments: "Коментарі", reply: "Відповісти", reply_to: "Відповідь на:", write_comment: "Написати коментар…", write_reply: "Відповідь…",
+    logout: "Вийти",
+    search_error: "Помилка пошуку:", open_chat_error: "Не вдалося відкрити чат:",
   },
 };
 
-const I18nCtx = createContext({ lang: "ru", setLang: () => {}, t: (k) => k });
-
-function readLang(){
-  try {
-    const raw = localStorage.getItem("app_settings");
-    if (!raw) return "ru";
-    const s = JSON.parse(raw);
-    return (s?.lang === "ua" || s?.lang === "en" || s?.lang === "ru") ? s.lang : "ru";
-  } catch {
-    return "ru";
-  }
+function getLang(){
+  const v = (localStorage.getItem(KEY) || "ru").toLowerCase();
+  return (v === "en" || v === "uk" || v === "ru") ? v : "ru";
 }
 
-export function I18nProvider({ children }){
-  const [lang, setLangState] = useState(readLang());
+function setLangValue(lang){
+  localStorage.setItem(KEY, lang);
+  window.dispatchEvent(new Event("app_lang_change"));
+}
 
-  const setLang = (next) => {
-    const v = (next === "ua" || next === "en" || next === "ru") ? next : "ru";
-    setLangState(v);
-    try {
-      const raw = localStorage.getItem("app_settings");
-      const prev = raw ? JSON.parse(raw) : {};
-      localStorage.setItem("app_settings", JSON.stringify({ ...prev, lang: v }));
-    } catch {}
-  };
+const Ctx = createContext({ lang: "ru", setLang: () => {}, t: (k) => k });
+
+export function I18nProvider({ children }) {
+  const [lang, setLangState] = useState(getLang());
 
   useEffect(() => {
-    const onStorage = (e) => {
-      if (e.key === "app_settings") setLangState(readLang());
+    const on = () => setLangState(getLang());
+    window.addEventListener("app_lang_change", on);
+    window.addEventListener("storage", on);
+    return () => {
+      window.removeEventListener("app_lang_change", on);
+      window.removeEventListener("storage", on);
     };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  const t = useMemo(() => {
-    const d = dict[lang] || dict.ru;
-    return (k) => d[k] || dict.ru[k] || k;
-  }, [lang]);
+  const api = useMemo(() => ({
+    lang,
+    setLang: (l) => setLangValue(l),
+    t: (k) => (dict[lang]?.[k] ?? dict.ru[k] ?? k),
+  }), [lang]);
 
-  const value = useMemo(() => ({ lang, setLang, t }), [lang, t]);
-  return <I18nCtx.Provider value={value}>{children}</I18nCtx.Provider>;
+  return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }
 
 export function useI18n(){
-  return useContext(I18nCtx);
+  return useContext(Ctx);
 }

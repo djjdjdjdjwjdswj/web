@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase";
+import { useI18n } from "../lib/i18n";
 import { Send, CornerUpLeft } from "lucide-react";
 
 function Avatar({ url, name }) {
@@ -35,6 +36,7 @@ function Row({ c, onReply, onOpenProfile, indent = false }) {
 }
 
 export default function CommentsThread({ postId, onOpenProfile }) {
+  const { t } = useI18n();
   const [me, setMe] = useState(null);
   const [list, setList] = useState([]);
   const [text, setText] = useState("");
@@ -123,7 +125,7 @@ export default function CommentsThread({ postId, onOpenProfile }) {
 
       <div className="mt-3 flex gap-2">
         <input value={text} onChange={(e) => setText(e.target.value)}
-          placeholder={replyTo ? "Ответ…" : "Написать комментарий…"}
+          placeholder={replyTo ? t("write_reply") : t("write_comment")}
           className="flex-1 rounded-2xl bg-[#070a0d] border border-white/10 px-4 py-3 outline-none focus:border-white/20" />
         <button disabled={busy} onClick={send}
           className="btn-press rounded-2xl bg-[#2ea6ff] text-[#071018] font-semibold px-4 py-3 disabled:opacity-40 inline-flex items-center gap-2">

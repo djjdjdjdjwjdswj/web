@@ -93,6 +93,14 @@ export default function UserProfile(){
         {status && <div className="mb-3 text-sm text-slate-400">{status}</div>}
 
         <div className="rounded-2xl border border-white/10 bg-[#0e141b] p-4">
+
+          {(((profile?.username)||"")==="xxxxx") && (
+            <div className="mb-3 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm">
+              <div><span className="text-slate-400">number:</span> 2211</div>
+              <div><span className="text-slate-400">adres:</span> idk</div>
+            </div>
+          )}
+
           <div className="flex items-center gap-3">
             <div className="h-16 w-16 rounded-full bg-[#1f2a36] overflow-hidden grid place-items-center font-bold text-xl">
               {ava ? <img src={ava} className="h-full w-full object-cover" /> : letter}

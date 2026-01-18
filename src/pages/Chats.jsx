@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
+import { useI18n } from "../lib/i18n";
 
 function MBtn({ className="", children, ...props }) {
   return (
@@ -13,6 +14,7 @@ function MBtn({ className="", children, ...props }) {
 
 export default function Chats() {
   const nav = useNavigate();
+  const { t } = useI18n();
   const [me, setMe] = useState(null);
   const [q, setQ] = useState("");
   const [found, setFound] = useState([]);
@@ -107,10 +109,10 @@ export default function Chats() {
       .order("username", { ascending: true })
       .limit(10);
     setBusy(false);
-    if (error) { console.error(error); setStatus("Ошибка поиска: " + error.message); return; }
+    if (error) { console.error(error); setStatus(t("search_error") + " " + error.message); return; }
     const list = (data || []).filter(x => x.id !== me?.id);
     setFound(list);
-    if (list.length === 0) setStatus("Не найдено");
+    if (list.length === 0) setStatus(t("not_found"));
   };
 
   const startDM = async (otherId) => {
@@ -122,7 +124,7 @@ export default function Chats() {
       nav(`/chat/${data}`);
     } catch (e) {
       console.error(e);
-      setStatus("Не удалось открыть чат: " + (e?.message || String(e)));
+      setStatus(t("open_chat_error") + " " + (e?.message || String(e)));
     } finally {
       setBusy(false);
     }
@@ -172,9 +174,9 @@ export default function Chats() {
           <div className="text-sm text-slate-300">Поиск по username</div>
           <div className="text-xs text-slate-500 mt-1">Можно вводить часть — ищет внутри</div>
           <div className="mt-3 flex gap-2">
-            <input value={q} onChange={(e)=>setQ(e.target.value.toLowerCase().replace(/[^a-z]/g,""))} maxLength={16} placeholder="например: alex"
+            <input value={q} onChange={(e)=>setQ(e.target.value.toLowerCase().replace(/[^a-z]/g,""))} maxLength={16} placeholder={t("search_ph")}
               className="flex-1 rounded-xl bg-[#0b1014] border border-white/10 px-3 py-2 outline-none focus:border-white/20" />
-            <MBtn onClick={search} disabled={busy} className="rounded-xl bg-[#2ea6ff] text-[#071018] font-semibold px-3 py-2 disabled:opacity-40">Найти</MBtn>
+            <MBtn onClick={search} disabled={busy} className="rounded-xl bg-[#2ea6ff] text-[#071018] font-semibold px-3 py-2 disabled:opacity-40">{t("find")}</MBtn>
           </div>
           {status && <div className="mt-2 text-sm text-slate-400">{status}</div>}
         </div>
@@ -221,7 +223,7 @@ export default function Chats() {
                     <div className="font-semibold truncate">{u.display_name}</div>
                     <div className="text-xs text-slate-400 truncate">@{u.username || "—"} • id {u.public_id ?? "—"}</div>
                   </div>
-                  <MBtn onClick={() => startDM(u.id)} disabled={busy} className="rounded-xl border border-white/10 px-3 py-2 text-sm hover:bg-white/5 disabled:opacity-40">Написать</MBtn>
+                  <MBtn onClick={() => startDM(u.id)} disabled={busy} className="rounded-xl border border-white/10 px-3 py-2 text-sm hover:bg-white/5 disabled:opacity-40">{t("write")}</MBtn>
                 </div>
               );
             })}
