@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 const KEY = "lang_v1";
 const saved = (() => { try { return localStorage.getItem(KEY); } catch { return null; } })();
@@ -93,4 +93,34 @@ export function useI18n(){
     return () => listeners.delete(fn);
   }, []);
   return { lang, t, setLang };
+}
+
+/** React provider, чтобы твой main.jsx мог делать:
+ *  <I18nProvider>...</I18nProvider>
+ */
+const Ctx = createContext({ lang: LANG, t, setLang });
+
+export function I18nProvider({ children }){
+  const [lang, setLangState] = useState(getLang());
+
+  useEffect(() => {
+    const fn = (v) => setLangState(v);
+    listeners.add(fn);
+    return () => listeners.delete(fn);
+  }, []);
+
+  const api = useMemo(() => ({
+    lang,
+    t: (k) => {
+      const d = DICT[lang] || DICT.ru;
+      return d[k] || (DICT.ru[k] || k);
+    },
+    setLang: (v) => setLang(v),
+  }), [lang]);
+
+  return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
+}
+
+export function useI18nCtx(){
+  return useContext(Ctx);
 }
