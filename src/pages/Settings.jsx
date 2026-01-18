@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Bell, Shield, Palette, Languages, LayoutGrid, Sparkles, ArrowLeft } from "lucide-react";
+import { Bell, Shield, Languages, LayoutGrid, ArrowLeft } from "lucide-react";
+import { useI18n } from "../lib/i18n";
 
 function Card({ title, icon, children }){
   return (
@@ -31,15 +32,8 @@ function Toggle({ value, onChange, label, hint }){
 
 export default function Settings(){
   const nav = useNavigate();
-  const [s, setS] = useState({
-    compact: false,
-    sounds: true,
-    notify: true,
-    blur: true,
-    animations: true,
-    privacyHideOnline: false,
-    lang: "ru",
-  });
+  const { lang, setLang, t } = useI18n();
+  const [s, setS] = useState({ compact:false, sounds:true, notify:true, blur:true, animations:true, privacyHideOnline:false, lang:"ru" });
 
   useEffect(() => {
     try {
@@ -52,13 +46,18 @@ export default function Settings(){
     try { localStorage.setItem("app_settings", JSON.stringify(s)); } catch {}
   }, [s]);
 
+  const setLangBoth = (v) => {
+    setS(o => ({ ...o, lang: v }));
+    setLang(v);
+  };
+
   return (
     <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{duration:0.18}} className="min-h-screen bg-[#070a0d] text-slate-100">
       <div className="mx-auto max-w-xl p-4">
         <div className="rounded-3xl glass ring-soft px-3 py-3 mb-3 flex items-center justify-between">
           <div>
-            <div className="text-lg font-semibold">Настройки</div>
-            <div className="text-xs text-slate-400">темная тема • плавные анимации</div>
+            <div className="text-lg font-semibold">{t("settings")}</div>
+            <div className="text-xs text-slate-400">lang: {lang}</div>
           </div>
           <motion.button whileHover={{scale:1.03}} whileTap={{scale:0.95}} onClick={() => nav(-1)} className="btn-press rounded-2xl ring-soft hover:bg-white/5 px-3 py-2">
             <ArrowLeft size={18} />
@@ -68,36 +67,33 @@ export default function Settings(){
         <div className="space-y-3">
           <Card title="Интерфейс" icon={<LayoutGrid size={18} />}>
             <div className="space-y-2">
-              <Toggle value={s.compact} onChange={(v)=>setS(o=>({...o,compact:v}))} label="Компактный режим" hint="меньше отступы, больше текста" />
-              <Toggle value={s.blur} onChange={(v)=>setS(o=>({...o,blur:v}))} label="Стекло/blur" hint="красивый фон в шапках" />
-              <Toggle value={s.animations} onChange={(v)=>setS(o=>({...o,animations:v}))} label="Анимации" hint="плавные появления и нажатия" />
+              <Toggle value={s.compact} onChange={(v)=>setS(o=>({...o,compact:v}))} label="Компактный режим" hint="меньше отступы" />
+              <Toggle value={s.blur} onChange={(v)=>setS(o=>({...o,blur:v}))} label="Стекло/blur" hint="красивые панели" />
+              <Toggle value={s.animations} onChange={(v)=>setS(o=>({...o,animations:v}))} label="Анимации" hint="плавные нажатия" />
             </div>
           </Card>
 
           <Card title="Уведомления" icon={<Bell size={18} />}>
             <div className="space-y-2">
-              <Toggle value={s.notify} onChange={(v)=>setS(o=>({...o,notify:v}))} label="Уведомления" hint="позже можно подключить push" />
+              <Toggle value={s.notify} onChange={(v)=>setS(o=>({...o,notify:v}))} label="Уведомления" hint="позже можно push" />
               <Toggle value={s.sounds} onChange={(v)=>setS(o=>({...o,sounds:v}))} label="Звуки" hint="клик/отправка" />
             </div>
           </Card>
 
           <Card title="Приватность" icon={<Shield size={18} />}>
             <div className="space-y-2">
-              <Toggle value={s.privacyHideOnline} onChange={(v)=>setS(o=>({...o,privacyHideOnline:v}))} label="Скрывать онлайн" hint="позже подключим реальный статус" />
+              <Toggle value={s.privacyHideOnline} onChange={(v)=>setS(o=>({...o,privacyHideOnline:v}))} label="Скрывать онлайн" hint="позже сделаем реально" />
             </div>
           </Card>
 
-          <Card title="Язык" icon={<Languages size={18} />}>
+          <Card title={t("settings") + " • Language"} icon={<Languages size={18} />}>
             <div className="flex gap-2">
-              <button onClick={()=>setS(o=>({...o,lang:"ru"}))} className={"flex-1 rounded-2xl border border-white/10 px-4 py-3 hover:bg-white/5 " + (s.lang==="ru" ? "bg-white/5" : "")}>Рус</button>
-              <button onClick={()=>setS(o=>({...o,lang:"ua"}))} className={"flex-1 rounded-2xl border border-white/10 px-4 py-3 hover:bg-white/5 " + (s.lang==="ua" ? "bg-white/5" : "")}>Укр</button>
-              <button onClick={()=>setS(o=>({...o,lang:"en"}))} className={"flex-1 rounded-2xl border border-white/10 px-4 py-3 hover:bg-white/5 " + (s.lang==="en" ? "bg-white/5" : "")}>Eng</button>
+              <button onClick={()=>setLangBoth("ru")} className={"flex-1 rounded-2xl border border-white/10 px-4 py-3 hover:bg-white/5 " + (lang==="ru" ? "bg-white/5" : "")}>Рус</button>
+              <button onClick={()=>setLangBoth("ua")} className={"flex-1 rounded-2xl border border-white/10 px-4 py-3 hover:bg-white/5 " + (lang==="ua" ? "bg-white/5" : "")}>Укр</button>
+              <button onClick={()=>setLangBoth("en")} className={"flex-1 rounded-2xl border border-white/10 px-4 py-3 hover:bg-white/5 " + (lang==="en" ? "bg-white/5" : "")}>Eng</button>
             </div>
+            <div className="mt-2 text-xs text-slate-500">Теперь язык реально влияет на интерфейс (меню/кнопки/плейсхолдеры).</div>
           </Card>
-
-          <div className="text-xs text-slate-500">
-            Дальше можем добавить: темы цветов, горячие клавиши, режим “не беспокоить”, кастом звуки, и реакции (как в ДС).
-          </div>
         </div>
       </div>
     </motion.div>
