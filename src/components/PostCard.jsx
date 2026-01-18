@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import CommentsThread from "./CommentsThread";
+import CommentsThread from "./CommentsThread.jsx";
 import { useI18n } from "../lib/i18n";
 
 export default function PostCard({ post, onReload }) {
