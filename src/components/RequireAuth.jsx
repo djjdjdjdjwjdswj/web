@@ -58,7 +58,7 @@ export default function RequireAuth({ children }) {
           <div className="mt-2 text-sm text-slate-400">Вы забанены администратором.</div>
           <button
             className="mt-4 w-full rounded-2xl border border-white/10 px-4 py-3 hover:bg-white/5"
-            onClick={async () => { await supabase.auth.signOut(); location.href = \"/login\"; }}
+            onClick={async () => { await supabase.auth.signOut(); window.location.href = "/login"; }}
           >
             Выйти
           </button>
