@@ -19,7 +19,12 @@ const DICT = {
     reply: "Ответить",
     reply_to: "Ответ на",
     write_comment: "Написать комментарий…",
-    write_reply: "Ответ…"
+    write_reply: "Ответ…",
+    message: "Сообщение…",
+    notifications: "Уведомления",
+    notif_on: "Уведомления включены ✅",
+    notif_off: "Уведомления запрещены",
+    notif_unsupported: "Уведомления не поддерживаются",
   },
   en: {
     feed: "Feed",
@@ -35,7 +40,12 @@ const DICT = {
     reply: "Reply",
     reply_to: "Reply to",
     write_comment: "Write a comment…",
-    write_reply: "Reply…"
+    write_reply: "Reply…",
+    message: "Message…",
+    notifications: "Notifications",
+    notif_on: "Notifications enabled ✅",
+    notif_off: "Notifications blocked",
+    notif_unsupported: "Notifications not supported",
   },
   uk: {
     feed: "Стрічка",
@@ -51,7 +61,12 @@ const DICT = {
     reply: "Відповісти",
     reply_to: "Відповідь на",
     write_comment: "Написати коментар…",
-    write_reply: "Відповідь…"
+    write_reply: "Відповідь…",
+    message: "Повідомлення…",
+    notifications: "Сповіщення",
+    notif_on: "Сповіщення увімкнено ✅",
+    notif_off: "Сповіщення вимкнено",
+    notif_unsupported: "Сповіщення не підтримуються",
   }
 };
 
@@ -70,7 +85,6 @@ export function t(k){
   return d[k] || (DICT.ru[k] || k);
 }
 
-// Hook that CommentsThread expects
 export function useI18n(){
   const [lang, setLangState] = useState(getLang());
   useEffect(() => {
