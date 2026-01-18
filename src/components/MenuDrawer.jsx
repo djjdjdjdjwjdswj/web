@@ -1,58 +1,81 @@
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function MenuDrawer({ open, onClose, onGo, meProfile }) {
-  const name = meProfile?.display_name || "User";
-  const username = meProfile?.username ? `@${meProfile.username}` : "@—";
-  const ava = meProfile?.avatar_url || "";
-  const letter = (name[0] || "U").toUpperCase();
+export default function MenuDrawer({ open, onClose, onGo }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
+    if (open) window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
 
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50">
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50"
+        >
+          <button
+            className="absolute inset-0 bg-black/60"
             onClick={onClose}
-            className="absolute inset-0 bg-black/55"
+            aria-label="close"
           />
-          <motion.div
-            initial={{ x: -320 }}
-            animate={{ x: 0 }}
-            exit={{ x: -320 }}
-            transition={{ type: "spring", stiffness: 380, damping: 34 }}
-            className="absolute left-0 top-0 h-full w-[290px] bg-[#0e141b] border-r border-white/10 overflow-hidden">
 
-            <div className="p-4 border-b border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-[#1f2a36] overflow-hidden grid place-items-center font-bold">
-                  {ava ? <img src={ava} className="h-full w-full object-cover" /> : letter}
-                </div>
-                <div className="min-w-0">
-                  <div className="font-semibold truncate">{name}</div>
-                  <div className="text-sm text-slate-400 truncate">{username}</div>
-                </div>
-              </div>
+          <motion.div
+            initial={{ x: -30, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -30, opacity: 0 }}
+            transition={{ duration: 0.16 }}
+            className="absolute left-3 top-3 bottom-3 w-[320px] max-w-[90vw] rounded-3xl border border-white/10 bg-[#0e141b] p-3 shadow-2xl"
+          >
+            <div className="px-3 py-2">
+              <div className="text-lg font-semibold">Меню</div>
+              <div className="text-xs text-slate-400">быстрые действия</div>
             </div>
 
-            <div className="p-3 space-y-2">
-              <button onClick={() => {onGo("/profile"); onClose();}} className="w-full text-left rounded-2xl border border-white/10 px-4 py-3 hover:bg-white/5 active:scale-[0.99] transition">
-                👤 Мой профиль
+            <div className="mt-2 space-y-2">
+              <button
+                onClick={() => { onGo?.("/"); onClose?.(); }}
+                className="w-full text-left rounded-2xl border border-white/10 px-4 py-3 hover:bg-white/5 active:scale-[0.99] transition"
+              >
+                📰 Лента
               </button>
-              <button onClick={() => {onGo("/chats"); onClose();}} className="w-full text-left rounded-2xl border border-white/10 px-4 py-3 hover:bg-white/5 active:scale-[0.99] transition">
+
+              <button
+                onClick={() => { onGo?.("/chats"); onClose?.(); }}
+                className="w-full text-left rounded-2xl border border-white/10 px-4 py-3 hover:bg-white/5 active:scale-[0.99] transition"
+              >
                 💬 Чаты
               </button>
-              <button onClick={() => {onGo("/gifts"); onClose();}} className="w-full text-left rounded-2xl border border-white/10 px-4 py-3 hover:bg-white/5 active:scale-[0.99] transition">
-                🎁 Подарки (3D)
+
+              <button
+                onClick={() => { onGo?.("/profile"); onClose?.(); }}
+                className="w-full text-left rounded-2xl border border-white/10 px-4 py-3 hover:bg-white/5 active:scale-[0.99] transition"
+              >
+                👤 Мой профиль
               </button>
-              <button onClick={() => {onGo("/settings"); onClose();}} className="w-full text-left rounded-2xl border border-white/10 px-4 py-3 hover:bg-white/5 active:scale-[0.99] transition">
-                ⚙ Настройки
+
+              <button
+                onClick={() => { onGo?.("/settings"); onClose?.(); }}
+                className="w-full text-left rounded-2xl border border-white/10 px-4 py-3 hover:bg-white/5 active:scale-[0.99] transition"
+              >
+                ⚙️ Настройки
               </button>
             </div>
 
+            <div className="mt-3 pt-3 border-t border-white/10">
+              <button
+                onClick={() => { onGo?.("/profile"); onClose?.(); }}
+                className="w-full text-left rounded-2xl border border-white/10 px-4 py-3 hover:bg-white/5 active:scale-[0.99] transition"
+              >
+                🚪 Выйти (в профиле)
+              </button>
+              <div className="mt-2 text-xs text-slate-500 px-1">Выход сейчас сделан в профиле, чтобы не путаться.</div>
+            </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );
