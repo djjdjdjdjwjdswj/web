@@ -91,7 +91,8 @@ export default function Chat() {
   const loadMsgs = async () => {
     const { data, error } = await supabase
       .from("messages")
-      .select("id,user_id,body,created_at,type,media_url,media_mime, profiles(display_name,avatar_url,username,public_id)")
+      // ВАЖНО: указываем relationship явно: profiles!messages_user_id_fkey(...)
+      .select("id,user_id,body,created_at,type,media_url,media_mime, profiles!messages_user_id_fkey(display_name,avatar_url,username,public_id)")
       .eq("conversation_id", cid)
       .order("created_at", { ascending: true });
 

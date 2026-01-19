@@ -1,40 +1,63 @@
 import { useEffect, useState } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { useI18n } from "../lib/i18n";
-import { motion } from "framer-motion";
+
+function Splash() {
+  return (
+    <div className="min-h-screen bg-[#0b1014] text-slate-100 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-16 w-16 rounded-2xl bg-black border border-white/10 grid place-items-center">
+          <div className="text-2xl font-black tracking-tight">S</div>
+        </div>
+        <div className="text-sm text-slate-400">Загрузка…</div>
+      </div>
+    </div>
+  );
+}
 
 export default function RequireAuth({ children }) {
+  const nav = useNavigate();
   const loc = useLocation();
-  const { t } = useI18n();
-  const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
   const [authed, setAuthed] = useState(false);
 
   useEffect(() => {
-    let alive = true;
+    let unsub = null;
+
     (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!alive) return;
-      setAuthed(!!data.session);
-      setLoading(false);
+      try {
+        const { data } = await supabase.auth.getSession();
+        const has = !!data?.session;
+        setAuthed(has);
+        setReady(true);
+
+        if (!has) {
+          nav("/login", { replace: true, state: { from: loc.pathname } });
+        }
+      } catch {
+        setAuthed(false);
+        setReady(true);
+        nav("/login", { replace: true, state: { from: loc.pathname } });
+      }
+
+      const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+        const has = !!session;
+        setAuthed(has);
+        setReady(true);
+        if (!has) nav("/login", { replace: true, state: { from: loc.pathname } });
+      });
+
+      unsub = sub?.subscription?.unsubscribe ? sub.subscription.unsubscribe : null;
     })();
-    return () => { alive = false; };
+
+    return () => {
+      try { unsub && unsub(); } catch {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0b1014] text-slate-100 grid place-items-center">
-        <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{duration:0.16}}
-          className="rounded-2xl border border-white/10 bg-[#0e141b] px-5 py-4 text-sm text-slate-300">
-          Loading…
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (!authed) {
-    return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
-  }
+  if (!ready) return <Splash />;
+  if (!authed) return <Splash />;
 
   return children;
 }

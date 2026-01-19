@@ -1,84 +1,66 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { Browser } from "@capacitor/browser";
 import { motion } from "framer-motion";
-import MBtn from "../components/MBtn";
-import { t } from "../lib/i18n";
-import { initNativeAuth } from "../lib/nativeAuth";
-import { App as CapApp } from "@capacitor/app";
 
 export default function Login(){
   const nav = useNavigate();
-  const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("");
 
   useEffect(() => {
-    initNativeAuth();
     (async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data?.user) nav("/", { replace: true });
+      const { data } = await supabase.auth.getSession();
+      if (data?.session) nav("/feed", { replace: true });
     })();
   }, [nav]);
-
-  // If the OAuth flow returns while app is open, close browser ASAP
-  useEffect(() => {
-    if (!(window && window.Capacitor)) return;
-    const sub = CapApp.addListener("appUrlOpen", async ({ url }) => {
-      try {
-        if (url && url.startsWith("chatweb://auth")) {
-          try { await Browser.close(); } catch {}
-        }
-      } catch {}
-    });
-    return () => { try { sub.remove(); } catch {} };
-  }, []);
 
   const loginGoogle = async () => {
     setBusy(true);
     setStatus("");
     try {
-      const isNative = !!(window && window.Capacitor);
-      const redirectTo = isNative ? "chatweb://auth" : (window.location.origin + "/auth/callback");
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      // Важно: редирект обратно в твой сайт (Vercel) или localhost
+      const redirectTo = window.location.origin;
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: {
-          redirectTo,
-          skipBrowserRedirect: isNative
-        }
+        options: { redirectTo }
       });
       if (error) throw error;
-
-      if (isNative) {
-        // Open OAuth page in in-app browser
-        await Browser.open({ url: data.url });
-      } else {
-        // Web fallback
-        window.location.href = data.url;
-      }
     } catch (e) {
-      setStatus((e && e.message) ? e.message : String(e));
-    } finally {
+      setStatus(e?.message || String(e));
       setBusy(false);
     }
   };
 
   return (
-    <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{duration:0.18}} className="min-h-screen bg-[#0b1014] text-slate-100">
-      <div className="mx-auto max-w-xl p-4">
-        <div className="rounded-3xl border border-white/10 bg-[#0e141b] p-5">
-          <div className="text-xl font-semibold">{t("login")}</div>
-          <div className="text-sm text-slate-400 mt-1">{t("login_hint")}</div>
-
-          <div className="mt-4">
-            <MBtn disabled={busy} onClick={loginGoogle} className="w-full rounded-2xl bg-[#2ea6ff] text-[#071018] font-semibold py-3 disabled:opacity-40">
-              {busy ? t("loading") : t("login_google")}
-            </MBtn>
+    <div className="min-h-screen bg-[#070a0d] text-slate-100 flex items-center justify-center p-4">
+      <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{duration:0.18}}
+        className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0b1014] p-5">
+        
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-12 w-12 rounded-2xl bg-black border border-white/10 grid place-items-center">
+            <div className="text-white font-black text-lg">S</div>
           </div>
-
-          {status && <div className="mt-3 text-sm text-red-200">{status}</div>}
+          <div className="min-w-0">
+            <div className="text-lg font-semibold leading-tight">side</div>
+            <div className="text-xs text-slate-500">Вход в аккаунт</div>
+          </div>
         </div>
-      </div>
-    </motion.div>
+
+        <button
+          onClick={loginGoogle}
+          disabled={busy}
+          className="w-full rounded-2xl bg-[#2ea6ff] text-[#071018] font-semibold px-4 py-3 disabled:opacity-40 active:scale-[0.99] transition"
+        >
+          {busy ? "Открываю Google…" : "Войти с Google"}
+        </button>
+
+        {status && <div className="mt-3 text-sm text-red-200">{status}</div>}
+
+        <div className="mt-4 text-xs text-slate-500">
+          Если после входа снова кидает на эту страницу — значит редирект/URL в Supabase настроен неправильно.
+        </div>
+      </motion.div>
+    </div>
   );
 }

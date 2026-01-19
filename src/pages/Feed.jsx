@@ -9,7 +9,6 @@ import { useI18n } from "../lib/i18n";
 export default function Feed() {
   const nav = useNavigate();
   const { t } = useI18n();
-  const fileRef = useRef(null);
 
   const [me, setMe] = useState(null);
   const [meProfile, setMeProfile] = useState(null);
@@ -19,8 +18,7 @@ export default function Feed() {
   const [busy, setBusy] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const [attach, setAttach] = useState(null); // File
-  const [attachLabel, setAttachLabel] = useState("");
+  const postingRef = useRef(false);
 
   const load = async () => {
     setBusy(true);
@@ -35,80 +33,27 @@ export default function Feed() {
       .maybeSingle();
     setMeProfile(mp || null);
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("posts")
-      .select("id,content,created_at,user_id,media_url,media_mime, profiles(display_name,avatar_url,username)")
+      .select("id,content,created_at,user_id,media_url,media_mime, profiles!posts_user_id_fkey(display_name,avatar_url,username)")
       .order("created_at", { ascending: false })
       .limit(100);
 
-    setPosts(data || []);
+    if (!error) setPosts(data || []);
     setBusy(false);
   };
 
   useEffect(() => { load(); }, []);
-  useEffect(() => { const i = setInterval(load, 7000); return () => clearInterval(i); }, []);
-
-  const pickFile = () => fileRef.current?.click();
-
-  const onFile = (f) => {
-    if (!f) return;
-    const mime = f.type || "";
-    const ok = mime.startsWith("image/") || mime.startsWith("video/");
-    if (!ok) return;
-    setAttach(f);
-    setAttachLabel(f.name || (mime.startsWith("video/") ? "video" : "image"));
-  };
-
-  const clearAttach = () => {
-    setAttach(null);
-    setAttachLabel("");
-    if (fileRef.current) fileRef.current.value = "";
-  };
-
-  const uploadToMedia = async (file, uid) => {
-    const mime = file.type || "";
-    const isImg = mime.startsWith("image/");
-    const isVid = mime.startsWith("video/");
-    const ext = (file.name.split(".").pop() || (isImg ? "png" : "mp4")).toLowerCase();
-    const path = `posts/${uid}/${Date.now()}.${ext}`;
-
-    const { error: upErr } = await supabase.storage.from("media").upload(path, file, { upsert: false });
-    if (upErr) throw upErr;
-
-    const { data } = supabase.storage.from("media").getPublicUrl(path);
-    return { url: data.publicUrl, mime };
-  };
+  useEffect(() => { const i = setInterval(load, 5000); return () => clearInterval(i); }, []);
 
   const createPost = async () => {
-    if (!me) return;
     const tt = text.trim();
-    if (!tt && !attach) return;
-
-    setBusy(true);
-    try {
-      let media_url = null;
-      let media_mime = null;
-
-      if (attach) {
-        const up = await uploadToMedia(attach, me.id);
-        media_url = up.url;
-        media_mime = up.mime;
-      }
-
-      const { error } = await supabase.from("posts").insert({
-        user_id: me.id,
-        content: tt || "",
-        media_url,
-        media_mime
-      });
-      if (error) throw error;
-
-      setText("");
-      clearAttach();
-      await load();
-    } finally {
-      setBusy(false);
-    }
+    if (!tt || !me || postingRef.current) return;
+    postingRef.current = true;
+    setText("");
+    await supabase.from("posts").insert({ user_id: me.id, content: tt });
+    await load();
+    postingRef.current = false;
   };
 
   return (
@@ -131,22 +76,8 @@ export default function Feed() {
         <div className="rounded-2xl border border-white/10 bg-[#0e141b] p-4">
           <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={t("new_post")} rows={3}
             className="w-full resize-none rounded-2xl bg-[#070a0d] border border-white/10 px-4 py-3 outline-none focus:border-white/20" />
-
-          <div className="mt-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
-              <button onClick={pickFile} className="rounded-2xl border border-white/10 px-4 py-2 text-sm hover:bg-white/5 active:scale-95 transition">
-                + Фото/Видео
-              </button>
-              {attach && (
-                <div className="text-xs text-slate-300 border border-white/10 bg-white/5 px-3 py-2 rounded-2xl flex items-center gap-2">
-                  <span className="truncate max-w-[140px]">{attachLabel}</span>
-                  <button onClick={clearAttach} className="text-slate-400 hover:text-slate-200">×</button>
-                </div>
-              )}
-            </div>
-
-            <button onClick={createPost} disabled={busy || (!text.trim() && !attach)}
+          <div className="mt-3 flex justify-end">
+            <button onClick={createPost} disabled={!text.trim()}
               className="rounded-2xl bg-[#2ea6ff] text-[#071018] font-semibold px-4 py-2 disabled:opacity-40 active:scale-95 transition">
               {t("post_btn")}
             </button>
