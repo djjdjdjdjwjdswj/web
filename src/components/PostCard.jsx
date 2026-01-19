@@ -25,10 +25,13 @@ export default function PostCard({ post, onReload }) {
   const authorLetter = (authorName?.[0] || "U").toUpperCase();
 
   const toggleLike = async () => {
-    // Пока простая UI-логика (без таблицы лайков). Можно сделать нормально через post_likes.
+    // TODO: сделаем нормально через post_likes (сохранение в базе)
     setLiked(v => !v);
     setLikes(x => (liked ? Math.max(0, x - 1) : x + 1));
   };
+
+  const hasMedia = !!post?.media_url;
+  const isVideo = String(post?.media_mime || "").startsWith("video/");
 
   return (
     <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{duration:0.18}}
@@ -45,12 +48,13 @@ export default function PostCard({ post, onReload }) {
       </div>
 
       {post.content && <div className="mt-3 text-[15px] text-slate-100 whitespace-pre-wrap break-words">{post.content}</div>}
-      {post.media_url && (
+
+      {hasMedia && (
         <div className="mt-3">
-          {String(post.media_mime || "").startsWith("video/") ? (
-            <video controls src={post.media_url} className="w-full rounded-3xl ring-soft max-h-[55vh]" />
+          {isVideo ? (
+            <video controls src={post.media_url} className="w-full rounded-3xl ring-soft max-h-[60vh]" />
           ) : (
-            <img src={post.media_url} className="w-full rounded-3xl ring-soft max-h-[55vh] object-cover" />
+            <img src={post.media_url} className="w-full rounded-3xl ring-soft max-h-[60vh] object-cover" />
           )}
         </div>
       )}
