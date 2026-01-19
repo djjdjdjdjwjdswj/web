@@ -26,7 +26,6 @@ export default function MenuDrawer({ open, onClose, onGo }) {
           >
             <div className="px-3 py-2">
               <div className="text-lg font-semibold">{t("menu")}</div>
-              <div className="text-xs text-slate-400">tg + ds vibe</div>
             </div>
 
             <div className="mt-2 space-y-2">

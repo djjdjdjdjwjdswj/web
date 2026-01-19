@@ -1,126 +1,98 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { supabase } from "./supabase";
+
+/**
+ * RU-only i18n + small startup splash.
+ * - Keeps existing imports: { I18nProvider } from "./lib/i18n"
+ * - Also exports useI28n(), t()
+ */
 
 const KEY = "lang_v1";
-const saved = (() => { try { return localStorage.getItem(KEY); } catch { return null; } })();
-let LANG = saved || "ru";
+const LANG = "ru"; // fixed
 
 const DICT = {
-  ru: {
-    feed: "Лента",
-    chats: "Чаты",
-    profile: "Профиль",
-    settings: "Настройки",
-    logout: "Выйти",
-    login: "Вход",
-    login_hint: "Войди через Google",
-    login_google: "Войти с Google",
-    loading: "Загрузка…",
-    comments: "Комментарии",
-    reply: "Ответить",
-    reply_to: "Ответ на",
-    write_comment: "Написать комментарий…",
-    write_reply: "Ответ…",
-    message: "Сообщение…",
-    notifications: "Уведомления",
-    notif_on: "Уведомления включены ✅",
-    notif_off: "Уведомления запрещены",
-    notif_unsupported: "Уведомления не поддерживаются",
-  },
-  en: {
-    feed: "Feed",
-    chats: "Chats",
-    profile: "Profile",
-    settings: "Settings",
-    logout: "Log out",
-    login: "Login",
-    login_hint: "Sign in with Google",
-    login_google: "Continue with Google",
-    loading: "Loading…",
-    comments: "Comments",
-    reply: "Reply",
-    reply_to: "Reply to",
-    write_comment: "Write a comment…",
-    write_reply: "Reply…",
-    message: "Message…",
-    notifications: "Notifications",
-    notif_on: "Notifications enabled ✅",
-    notif_off: "Notifications blocked",
-    notif_unsupported: "Notifications not supported",
-  },
-  uk: {
-    feed: "Стрічка",
-    chats: "Чати",
-    profile: "Профіль",
-    settings: "Налаштування",
-    logout: "Вийти",
-    login: "Вхід",
-    login_hint: "Увійди через Google",
-    login_google: "Увійти з Google",
-    loading: "Завантаження…",
-    comments: "Коментарі",
-    reply: "Відповісти",
-    reply_to: "Відповідь на",
-    write_comment: "Написати коментар…",
-    write_reply: "Відповідь…",
-    message: "Повідомлення…",
-    notifications: "Сповіщення",
-    notif_on: "Сповіщення увімкнено ✅",
-    notif_off: "Сповіщення вимкнено",
-    notif_unsupported: "Сповіщення не підтримуються",
-  }
+  feed: "Лента",
+  chats: "Чаты",
+  profile: "Профиль",
+  settings: "Настройки",
+  logout: "Выйти",
+  login: "ВХОД",
+  login_hint: "Войди через Google",
+  login_google: "Войти с Google",
+  loading: "Загрузка.…",
+  comments: "Комментарии",
+  reply: "Ответить",
+  reply_to: "Ответ на ",
+  write_comment: "Написать комментарий…",
+  write_reply: "Ответ.…",
+  new_post: "Что нового?",
+  post_btn: "Опубликовать",
+  empty_feed: "Пока пусто.",
+  message_placeholder: "Сообщение…",
 };
 
-const listeners = new Set();
-
-export function setLang(v){
-  LANG = v;
-  try { localStorage.setItem(KEY, v); } catch {}
-  for (const fn of listeners) { try { fn(LANG); } catch {} }
+export function t(k) {
+  return DICT[k] || k;
 }
 
-export function getLang(){ return LANG; }
+const Ctx = createContext({
+  lang: LANG,
+  t,
+  setLang: () => {},
+});
 
-export function t(k){
-  const d = DICT[LANG] || DICT.ru;
-  return d[k] || (DICT.ru[k] || k);
-}
-
-export function useI18n(){
-  const [lang, setLangState] = useState(getLang());
-  useEffect(() => {
-    const fn = (v) => setLangState(v);
-    listeners.add(fn);
-    return () => listeners.delete(fn);
-  }, []);
-  return { lang, t, setLang };
-}
-
-/** React provider, чтобы твой main.jsx мог делать:
- *  <I18nProvider>...</I18nProvider>
- */
-const Ctx = createContext({ lang: LANG, t, setLang });
-
-export function I18nProvider({ children }){
-  const [lang, setLangState] = useState(getLang());
-
-  useEffect(() => {
-    const fn = (v) => setLangState(v);
-    listeners.add(fn);
-    return () => listeners.delete(fn);
-  }, []);
-
-  const api = useMemo(() => ({
-    lang,
-    t: (k) => {
-      const d = DICT[lang] || DICT.ru;
-      return d[k] || (DICT.ru[k] || k);
-    },
-    setLang: (v) => setLang(v),
-  }), [lang]);
-
-  return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
-}
-
-export function useI18nCtx(){
+export function useI28n() {
   return useContext(Ctx);
+}
+
+/**
+ * Ensures a profile exists for the current user (server-side RPC).
+ * This prevents "setup profile again" when user logs in again.
+ */
+async function ensureProfileOnce() {
+  try {
+    const { data: ud } = await supabase.auth.getUser();
+    if (!ud?.user) return;
+    // create profile row if missing
+    await supabase.rpc("ensure_profile");
+  } catch {
+    // ignore
+  }
+}
+
+function Splash() {
+  return (
+    <div className="min-h-screen bg-[#0b1014] text-slate-100 grid place-items-center">
+      <div className="flex flex-col Items-center gap-4">
+        <div className="h-16 w-16 rounded-3xl bg-black border border-white/10 grid place-items-center shadow-2xl">
+          <div className="h-7 w-7 rounded-xl bg-white/90" />
+        </div>
+        <div className="text-sm text-slate-400">side</div>
+      </div>
+    </div>
+  );
+}
+
+export function I18nProvider({ children }) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    // cleanup old saved lang (we are RU-only now)
+    try { localStorage.removeItem(KEY); } catch {}
+
+    let alive = true;
+    (async () => {
+      await ensureProfileOnce();
+      // small splash delay to look smooth
+      await new Promise((r) => setTimeout(r, 650));
+      if (alive) setReady(true);
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  const value = useMemo(() => ({ lang: LANG, t, setLang: () => {} }), []);
+
+  if (!ready) return <Splash />;
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

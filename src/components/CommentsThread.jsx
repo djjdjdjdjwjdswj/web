@@ -14,20 +14,27 @@ function Avatar({ url, name }) {
 }
 
 function Row({ c, onReply, onOpenProfile, indent = false }) {
-  const name = c.profiles?.display_name || "User";
+  const name = c._profile?.display_name || "User";
+  const ava = c._profile?.avatar_url || "";
   return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.14 }}
-      className={"rounded-2xl border border-white/10 bg-[#070a0d] p-3 " + (indent ? "ml-8" : "")}>
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.14 }}
+      className={"rounded-2xl border border-white/10 bg-[#070a0d] p-3 " + (indent ? "ml-8" : "")}
+    >
       <div className="flex items-start gap-2">
         <button onClick={() => onOpenProfile(c.user_id)} className="shrink-0 hover:opacity-80">
-          <Avatar url={c.profiles?.avatar_url} name={name} />
+          <Avatar url={ava} name={name} />
         </button>
         <div className="min-w-0 flex-1">
-          <button onClick={() => onOpenProfile(c.user_id)} className="text-sm font-semibold hover:opacity-90 truncate">{name}</button>
+          <button onClick={() => onOpenProfile(c.user_id)} className="text-sm font-semibold hover:opacity-90 truncate">
+            {name}
+          </button>
           <div className="text-[11px] text-slate-500">{new Date(c.created_at).toLocaleString()}</div>
           <div className="mt-1 text-sm text-slate-200 whitespace-pre-wrap break-words">{c.body}</div>
           <button onClick={() => onReply(c)} className="mt-2 inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200">
-            <CornerUpLeft size={14} /> Ответить
+            <CornerUpLeft size={14} /> {"Ответить"}
           </button>
         </div>
       </div>
@@ -45,13 +52,34 @@ export default function CommentsThread({ postId, onOpenProfile }) {
   const [status, setStatus] = useState("");
 
   const load = async () => {
+    // 1) грузим комментарии без join profiles (потому что relationship нет)
     const { data, error } = await supabase
       .from("post_comments")
-      .select("id,post_id,user_id,body,created_at,parent_id, profiles(display_name,avatar_url,username,public_id)")
+      .select("id,post_id,user_id,body,created_at,parent_id")
       .eq("post_id", postId)
       .order("created_at", { ascending: true });
-    if (error) { setStatus(error.message); return; }
-    setList(data || []);
+
+    if (error) {
+      setStatus(error.message);
+      return;
+    }
+
+    const rows = data || [];
+
+    // 2) отдельным запросом забираем profiles по user_id
+    const ids = Array.from(new Set(rows.map((x) => x.user_id).filter(Boolean)));
+    let profMap = new Map();
+    if (ids.length) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id,display_name,username,avatar_url,public_id")
+        .in("id", ids);
+      for (const p of profs || []) profMap.set(p.id, p);
+    }
+
+    // 3) приклеиваем профиль в поле _profile
+    setList(rows.map((c) => ({ ...c, _profile: profMap.get(c.user_id) || null })));
+    setStatus("");
   };
 
   useEffect(() => {
@@ -60,11 +88,13 @@ export default function CommentsThread({ postId, onOpenProfile }) {
       setMe(ud?.user || null);
       await load();
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId]);
 
   useEffect(() => {
-    const t = setInterval(load, 4000);
-    return () => clearInterval(t);
+    const tt = setInterval(load, 4000);
+    return () => clearInterval(tt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId]);
 
   const tree = useMemo(() => {
@@ -81,9 +111,14 @@ export default function CommentsThread({ postId, onOpenProfile }) {
 
   const send = async () => {
     const body = text.trim();
-    if (!me) { setStatus("Нужно войти"); return; }
+    if (!me) {
+      setStatus("Нужно войти");
+      return;
+    }
     if (!body) return;
-    setBusy(true); setStatus("");
+
+    setBusy(true);
+    setStatus("");
     try {
       const payload = { post_id: postId, user_id: me.id, body, parent_id: replyTo?.id || null };
       const { error } = await supabase.from("post_comments").insert(payload);
@@ -100,7 +135,7 @@ export default function CommentsThread({ postId, onOpenProfile }) {
 
   return (
     <div className="mt-3">
-      <div className="text-sm text-slate-300 mb-2">Комментарии</div>
+      <div className="text-sm text-slate-300 mb-2">{t("comments")}</div>
 
       <div className="space-y-2">
         {tree.roots.map((c) => (
@@ -115,20 +150,30 @@ export default function CommentsThread({ postId, onOpenProfile }) {
 
       <AnimatePresence>
         {replyTo && (
-          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }}
-            className="mt-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300">
-            Ответ на: <span className="text-slate-100 font-semibold">{replyTo.profiles?.display_name || "User"}</span>
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 6 }}
+            className="mt-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300"
+          >
+            {t("reply_to")}: <span className="text-slate-100 font-semibold">{replyTo._profile?.display_name || "User"}</span>
             <button onClick={() => setReplyTo(null)} className="ml-2 text-slate-400 hover:text-slate-200">×</button>
           </motion.div>
         )}
       </AnimatePresence>
 
       <div className="mt-3 flex gap-2">
-        <input value={text} onChange={(e) => setText(e.target.value)}
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
           placeholder={replyTo ? t("write_reply") : t("write_comment")}
-          className="flex-1 rounded-2xl bg-[#070a0d] border border-white/10 px-4 py-3 outline-none focus:border-white/20" />
-        <button disabled={busy} onClick={send}
-          className="btn-press rounded-2xl bg-[#2ea6ff] text-[#071018] font-semibold px-4 py-3 disabled:opacity-40 inline-flex items-center gap-2">
+          className="flex-1 rounded-2xl bg-[#070a0d] border border-white/10 px-4 py-3 outline-none focus:border-white/20"
+        />
+        <button
+          disabled={busy}
+          onClick={send}
+          className="btn-press rounded-2xl bg-[#2ea6ff] text-[#071018] font-semibold px-4 py-3 disabled:opacity-40 inline-flex items-center gap-2"
+        >
           <Send size={18} />
         </button>
       </div>
