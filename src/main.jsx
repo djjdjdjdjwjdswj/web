@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
+import FatalEnv from "./components/FatalEnv";
 
 function Splash() {
   return (
@@ -77,7 +78,8 @@ function Root() {
 
   return (
     <BrowserRouter>
-      <App />
+        <FatalEnv />
+        <App />
     </BrowserRouter>
   );
 }
