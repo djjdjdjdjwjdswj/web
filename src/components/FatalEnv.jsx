@@ -1,10 +1,10 @@
 import React from "react";
+import { supabaseUrl, supabaseAnonKey } from "../lib/supabase";
 
 export default function FatalEnv({ children }) {
-  const url = import.meta.env.VITE_SUPABASE_URL;
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const ok = Boolean(supabaseUrl && supabaseAnonKey);
 
-  if (!url || !key) {
+  if (!ok) {
     return (
       <div style={{
         minHeight: "100vh",
@@ -22,14 +22,14 @@ export default function FatalEnv({ children }) {
           padding: 18,
           background: "#0b1014"
         }}>
-          <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>
+          <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 8 }}>
             Ошибка конфигурации (Vercel)
           </div>
 
           <div style={{ opacity: 0.9, lineHeight: 1.45 }}>
-            Не заданы переменные окружения Supabase.
-            <br /><br />
-            Добавь на Vercel:
+            Supabase env НЕ задан на Vercel, поэтому сайт запускается пустым.
+            <br/><br/>
+            Добавь на Vercel переменные:
             <div style={{
               marginTop: 10,
               fontFamily: "monospace",
@@ -39,11 +39,20 @@ export default function FatalEnv({ children }) {
               background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.08)"
             }}>
-              VITE_SUPABASE_URL<br />
+              VITE_SUPABASE_URL<br/>
               VITE_SUPABASE_ANON_KEY
             </div>
-            <br />
-            Потом сделай Redeploy.
+
+            <div style={{ marginTop: 12, fontSize: 12, opacity: 0.8 }}>
+              Сейчас у тебя:
+              <div style={{ marginTop: 8, fontFamily: "monospace" }}>
+                VITE_SUPABASE_URL = {String(supabaseUrl || "(empty)")}<br/>
+                VITE_SUPABASE_ANON_KEY = {supabaseAnonKey ? "(set)" : "(empty)"}
+              </div>
+            </div>
+
+            <br/>
+            Потом нажми Redeploy.
           </div>
         </div>
       </div>
