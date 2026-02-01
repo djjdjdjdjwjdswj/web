@@ -18,49 +18,67 @@ function Splash() {
       gap: 14
     }}>
       <div style={{
-        width: 92,
-        height: 92,
-        borderRadius: 26,
+        width: 96,
+        height: 96,
+        borderRadius: 28,
         background: "#000",
-        border: "1px solid rgba(255,255,255,0.10)",
+        border: "1px solid rgba(255,255,255,0.12)",
         display: "grid",
         placeItems: "center"
       }}>
         <div style={{
-          width: 54,
-          height: 54,
+          width: 56,
+          height: 56,
           background: "#fff",
           clipPath: "polygon(12% 30%, 30% 12%, 50% 32%, 70% 12%, 88% 30%, 68% 50%, 88% 70%, 70% 88%, 50% 68%, 30% 88%, 12% 70%, 32% 50%)",
           transform: "rotate(12deg)"
         }} />
       </div>
 
-      <div style={{ fontWeight: 800, letterSpacing: 1 }}>SIDE</div>
+      <div style={{ fontWeight: 900, letterSpacing: 2, fontSize: 14, opacity: 0.95 }}>
+        SIDE
+      </div>
+    </div>
+  );
+}
 
+function Loading() {
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: "#000",
+      display: "grid",
+      placeItems: "center",
+      color: "#fff"
+    }}>
       <div style={{
-        width: 160,
+        width: 180,
         height: 10,
         borderRadius: 999,
-        background: "rgba(255,255,255,0.10)",
+        background: "rgba(255,255,255,0.12)",
         overflow: "hidden"
       }}>
         <div style={{
           width: "60%",
           height: "100%",
           background: "#fff",
-          opacity: 0.7,
-          animation: "sidebar 0.9s ease-in-out infinite alternate"
+          opacity: 0.75,
+          animation: "side_load 0.9s ease-in-out infinite alternate"
         }} />
       </div>
 
-      <style>{`@keyframes sidebar { from { transform: translateX(-30%); } to { transform: translateX(40%); } }`}</style>
+      <style>{`
+        @keyframes side_load {
+          from { transform: translateX(-35%); }
+          to   { transform: translateX(55%); }
+        }
+      `}</style>
     </div>
   );
 }
 
 function Root() {
-  const [phase, setPhase] = useState("splash"); // splash -> loading -> app
-  const [ready, setReady] = useState(false);
+  const [phase, setPhase] = useState("splash");
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase("loading"), 3000);
@@ -69,17 +87,18 @@ function Root() {
 
   useEffect(() => {
     if (phase !== "loading") return;
-    // маленькая "загрузка" после заставки
-    const t2 = setTimeout(() => setReady(true), 700);
+    const t2 = setTimeout(() => setPhase("app"), 700);
     return () => clearTimeout(t2);
   }, [phase]);
 
-  if (!ready) return <Splash />;
+  if (phase === "splash") return <Splash />;
+  if (phase === "loading") return <Loading />;
 
   return (
     <BrowserRouter>
-        <FatalEnv />
+      <FatalEnv>
         <App />
+      </FatalEnv>
     </BrowserRouter>
   );
 }
