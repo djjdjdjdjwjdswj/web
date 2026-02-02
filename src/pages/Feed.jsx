@@ -37,6 +37,7 @@ async function uploadToMedia(file, path) {
 
 export default function Feed() {
   const nav = useNavigate();
+  const location = useLocation();
   const { t } = useI18n();
 
   const fileRef = useRef(null);
@@ -95,6 +96,25 @@ export default function Feed() {
     }
 
     setPosts(data || []);
+
+    try {
+      const sp = new URLSearchParams(location.search);
+      const pid = sp.get("post");
+      if (pid) {
+        const one = await supabase
+          .from("posts")
+          .select("id,content,created_at,user_id,media_url,media_mime, profiles(display_name,avatar_url,username)")
+          .eq("id", pid)
+          .maybeSingle();
+        if (one?.data) {
+          setPosts((prev)=>{
+            const rest = (prev||[]).filter(x=>String(x.id)!==String(one.data.id));
+            return [one.data, ...rest];
+          });
+        }
+      }
+    } catch {}
+
     setBusy(false);
   };
 

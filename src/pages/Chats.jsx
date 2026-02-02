@@ -181,6 +181,22 @@ export default function Chats() {
           {status && <div className="mt-2 text-sm text-slate-400">{status}</div>}
         </div>
 
+        <div className="mt-6">
+          <div className="text-sm text-slate-400 mb-2">Результаты поиска</div>
+          <div className="space-y-3">
+            {found.map((u) => {
+              const ava = u.avatar_url || "";
+              const letter = (u.display_name?.[0] || "U").toUpperCase();
+              return (
+                <div key={u.id} className="rounded-2xl border border-white/10 bg-[#0e141b] p-4 flex items-center gap-3">
+                  <button onClick={() => nav(`/u/${u.id}`)} className="h-10 w-10 rounded-full bg-[#1f2a36] overflow-hidden grid place-items-center font-bold">
+                    {ava ? <img src={ava} className="h-full w-full object-cover" /> : letter}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold truncate">{u.display_name}</div>
+                    <div className="text-xs text-slate-400 truncate">@{u.username || "—"} • id {u.public_id ?? "—"}</div>
+                  </div>
+
         <div className="mt-4">
           <div className="text-sm text-slate-400 mb-2">Мои чаты</div>
           <div className="space-y-2">
@@ -207,22 +223,6 @@ export default function Chats() {
             {myChats.length === 0 && <div className="text-sm text-slate-500">Пока нет чатов</div>}
           </div>
         </div>
-
-        <div className="mt-6">
-          <div className="text-sm text-slate-400 mb-2">Результаты поиска</div>
-          <div className="space-y-3">
-            {found.map((u) => {
-              const ava = u.avatar_url || "";
-              const letter = (u.display_name?.[0] || "U").toUpperCase();
-              return (
-                <div key={u.id} className="rounded-2xl border border-white/10 bg-[#0e141b] p-4 flex items-center gap-3">
-                  <button onClick={() => nav(`/u/${u.id}`)} className="h-10 w-10 rounded-full bg-[#1f2a36] overflow-hidden grid place-items-center font-bold">
-                    {ava ? <img src={ava} className="h-full w-full object-cover" /> : letter}
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold truncate">{u.display_name}</div>
-                    <div className="text-xs text-slate-400 truncate">@{u.username || "—"} • id {u.public_id ?? "—"}</div>
-                  </div>
                   <MBtn onClick={() => startDM(u.id)} disabled={busy} className="rounded-xl border border-white/10 px-3 py-2 text-sm hover:bg-white/5 disabled:opacity-40">{t("write")}</MBtn>
                 </div>
               );

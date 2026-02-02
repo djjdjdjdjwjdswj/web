@@ -83,6 +83,22 @@ export default function UserProfile(){
     }
   };
 
+
+  const unbanUser = async () => {
+    if (!amAdmin) return;
+    if (!p?.id) return;
+    if (!confirm("Разбанить пользователя?") ) return;
+    setStatus("");
+    try {
+      const { error } = await supabase.from("bans").delete().eq("user_id", p.id);
+      if (error) throw error;
+      setStatus("Пользователь разбанен ✅");
+    } catch (e) {
+      console.error(e);
+      setStatus("Не удалось разбанить: " + (e?.message || String(e)));
+    }
+  };
+
   const name = p?.display_name || "User";
   const ava = p?.avatar_url || "";
   const letter = (name?.[0] || "U").toUpperCase();
@@ -121,8 +137,11 @@ export default function UserProfile(){
           <div className="mt-4 flex gap-2">
             <MBtn onClick={startDM} className="flex-1 rounded-2xl bg-[#2ea6ff] text-[#071018] font-semibold py-2">Написать</MBtn>
             {amAdmin && !targetIsAdmin && (
-              <MBtn onClick={banUser} className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-2 text-red-200 hover:bg-red-500/20">Бан</MBtn>
-            )}
+                <>
+                  <MBtn onClick={banUser} className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-2 text-red-200 hover:bg-red-500/20">Бан</MBtn>
+                  <MBtn onClick={unbanUser} className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-emerald-200 hover:bg-emerald-500/20">Разбан</MBtn>
+                </>
+              )}
           </div>
         </div>
       </div>
