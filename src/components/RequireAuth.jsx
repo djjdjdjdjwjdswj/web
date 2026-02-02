@@ -2,62 +2,58 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
-function Splash() {
-  return (
-    <div className="min-h-screen bg-[#0b1014] text-slate-100 flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="h-16 w-16 rounded-2xl bg-black border border-white/10 grid place-items-center">
-          <div className="text-2xl font-black tracking-tight">S</div>
-        </div>
-        <div className="text-sm text-slate-400">Загрузка…</div>
-      </div>
-    </div>
-  );
-}
-
 export default function RequireAuth({ children }) {
   const nav = useNavigate();
   const loc = useLocation();
-  const [ready, setReady] = useState(false);
-  const [authed, setAuthed] = useState(false);
+  const [status, setStatus] = useState("checking"); // checking | authed | guest
 
   useEffect(() => {
-    let unsub = null;
+    let alive = true;
 
-    (async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        const has = !!data?.session;
-        setAuthed(has);
-        setReady(true);
+    const go = async () => {
+      const { data } = await supabase.auth.getSession();
+      const user = data?.session?.user;
 
-        if (!has) {
-          nav("/login", { replace: true, state: { from: loc.pathname } });
-        }
-      } catch {
-        setAuthed(false);
-        setReady(true);
-        nav("/login", { replace: true, state: { from: loc.pathname } });
-      }
+      if (!alive) return;
 
-      const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-        const has = !!session;
-        setAuthed(has);
-        setReady(true);
-        if (!has) nav("/login", { replace: true, state: { from: loc.pathname } });
-      });
+      if (user) setStatus("authed");
+      else setStatus("guest");
+    };
 
-      unsub = sub?.subscription?.unsubscribe ? sub.subscription.unsubscribe : null;
-    })();
+    go();
+
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      go();
+    });
 
     return () => {
-      try { unsub && unsub(); } catch {}
+      alive = false;
+      try { sub?.subscription?.unsubscribe?.(); } catch {}
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!ready) return <Splash />;
-  if (!authed) return <Splash />;
+  useEffect(() => {
+    if (status !== "guest") return;
+    // не редиректим если уже на /login или /auth/callback
+    if (loc.pathname.startsWith("/login") || loc.pathname.startsWith("/auth/callback")) return;
+    nav("/login", { replace: true });
+  }, [status, loc.pathname, nav]);
+
+  if (status === "checking") {
+    return (
+      <div style={{
+        minHeight: "100vh",
+        background: "#070a0d",
+        color: "#e5e7eb",
+        display: "grid",
+        placeItems: "center"
+      }}>
+        <div style={{ opacity: 0.85 }}>Загрузка…</div>
+      </div>
+    );
+  }
+
+  if (status === "guest") return null;
 
   return children;
 }

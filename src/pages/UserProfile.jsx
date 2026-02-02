@@ -13,7 +13,7 @@ function MBtn({ className="", children, ...props }) {
 
 export default function UserProfile(){
   const { id } = useParams();
-  const uid = String(id);
+  const uid = String(id || "");
   const nav = useNavigate();
 
   const [me, setMe] = useState(null);
@@ -29,10 +29,14 @@ export default function UserProfile(){
     (async () => {
       setBusy(true); setStatus("");
       const { data: ud } = await supabase.auth.getUser();
-      if (!ud.user) { nav("/login", { replace: true }); return; }
+      if (!ud?.user) { nav("/login", { replace: true }); return; }
       setMe(ud.user);
 
-      const { data: mp } = await supabase.from("profiles").select("id,display_name,username,avatar_url,public_id").eq("id", ud.user.id).maybeSingle();
+      const { data: mp } = await supabase
+        .from("profiles")
+        .select("id,display_name,username,avatar_url,public_id")
+        .eq("id", ud.user.id)
+        .maybeSingle();
       setMyProfile(mp || null);
 
       const { data, error } = await supabase
@@ -43,6 +47,7 @@ export default function UserProfile(){
 
       if (error) { setStatus("Ошибка: " + error.message); setBusy(false); return; }
       if (!data) { setStatus("Профиль не найден"); setBusy(false); return; }
+
       setP(data);
       setBusy(false);
     })();
@@ -91,10 +96,10 @@ export default function UserProfile(){
         </div>
 
         {status && <div className="mb-3 text-sm text-slate-400">{status}</div>}
+        {busy && <div className="mb-3 text-sm text-slate-500">Загрузка…</div>}
 
         <div className="rounded-2xl border border-white/10 bg-[#0e141b] p-4">
-
-          {(((profile?.username)||"")==="xxxxx") && (
+          {(((p?.username)||"")==="xxxxx") && (
             <div className="mb-3 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm">
               <div><span className="text-slate-400">number:</span> 2211</div>
               <div><span className="text-slate-400">adres:</span> idk</div>

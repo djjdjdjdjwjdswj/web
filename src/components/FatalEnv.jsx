@@ -22,7 +22,7 @@ export default function FatalEnv() {
         background: "#0b1014"
       }}>
         <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>
-          Ошибка конфигурации (Vercel)
+          Ошибка конфигурации
         </div>
 
         <div style={{ opacity: 0.9, lineHeight: 1.45 }}>

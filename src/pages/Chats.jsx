@@ -47,9 +47,9 @@ export default function Chats() {
 
     const { data: convs, error: e2 } = await supabase
       .from("conversations")
-      .select("id,is_group,title,avatar_url,created_at")
+      .select("id,is_group,title,avatar_url,created_at,last_message_at")
       .in("id", ids)
-      .order("created_at", { ascending: false });
+      .order("last_message_at", { ascending: false });
     if (e2) { console.error(e2); return; }
     setMyChats(convs || []);
 
